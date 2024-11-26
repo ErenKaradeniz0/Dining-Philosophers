@@ -117,8 +117,9 @@ void *PhilosopherThread(LPVOID vv) {
     int id;
     id = *tmp;
 
+    int c_id; //Chopstick ID
+
     Philosopher p = Philosopher{ THINKING, 0, id, PhilosophersCoordinate[id][0], PhilosophersCoordinate[id][1] } ;
-   
 
     Sleep(1000); 
 
@@ -145,19 +146,37 @@ void *PhilosopherThread(LPVOID vv) {
                 //FillEllipse(screenMatrix, p.x, p.y, 8 * constant, 8 * constant, 0x0000FF); // Philosophers (yellow)
                 ChopstickCount += 2;
                 p.chopstick = 0;
-                //return ;
+                return 0;
             }
         }
         p.chopstick++;
         ChopstickCount--;
-        if (p.chopstick == 2) {
-            p.state = HUNGRY;
+        if (ChopstickCount >= 0) {
+            c_id = CHOPSTICK_LIMIT - (ChopstickCount + 1);
+            Line(screenMatrix,p.x + 20 ,p.y + 30 , ChopsticksCoordinate[c_id][0] + 20, 
+                ChopsticksCoordinate[c_id][1] + 20 ,0xDDDDDD);
+
+            
+            FillEllipse(screenMatrix, ChopsticksCoordinate[c_id][0],ChopsticksCoordinate[c_id][1],
+                4 * constant, 4 *constant, 0x999999); // Chopsticks (green)
+
+            PrintNumbertoScreen(chopstickLabel, "CH", c_id);
+
+
+            Impress12x20(screenMatrix, ChopsticksCoordinate[c_id][0] + 1 * constant,
+                ChopsticksCoordinate[c_id][1] + 2 * constant, chopstickLabel, 0xFFFFFF); // Print ID
+
+            if (p.chopstick == 2) {
+                p.state = HUNGRY;
+            }
         }
         Sleep(1000);
     }
-
-
+        
 }
+
+
+
 
 void StartNonSemaphore(void) {
 
@@ -166,21 +185,18 @@ void StartNonSemaphore(void) {
     int philosopher[5];
     DWORD ThreadID;
     
-    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)DrawThread, NULL, 0, NULL);
-
     Sleep(1000);
 
     for (int i = 0; i < PHILOSOPHER_LIMIT; i++) {
 
         //Philosopher  p = { THINKING, 0, id, PhilosophersCoordinate[id][0], PhilosophersCoordinate[id][1] };
         //philosopher[i] = p;
-
-        philosopher[5];
-
+        philosopher[i]=i;
         CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhilosopherThread, &philosopher[i], 0, &ThreadID);
+        Sleep(1);
     }
     
-    
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)DrawThread, NULL, 0, NULL);
  
 }
 
