@@ -2,6 +2,12 @@
 #include <cmath>
 ICBYTES screenMatrix;
 
+enum PhilosophersState {
+    THINKING,
+    HUNGRY,
+    EATING
+};
+
 int F1;
 
 void ICGUI_Create() {
@@ -18,14 +24,14 @@ void PrintNumbertoScreen(char* label, const char* prefix, int number) {
 
 void DrawDiningPhilosophers(ICBYTES& matrix) {
     // Center coordinates of the circle
-    const int centerX = 230; // X-axis center
+    const int centerX = 220; // X-axis center
     const int centerY = 220; // Y-axis center
     const int radius = 150;  // Circle radius (distance from center)
 
     // Angles to determine the positions of philosophers and chopsticks on the circle
     const double PI = 3.141592653589793;
     const double philosopherAngles[5] = { 270, 340, 50, 130, 200 }; // Angles in degrees (positions of philosophers)
-    const double chopstickAngles[5] = { 300, 20, 90, 160, 230 };   // Angles in degrees (positions of chopsticks)
+    const double chopstickAngles[5] = { 315, 20, 80, 155, 235 };   // Angles in degrees (positions of chopsticks)
     int constant = 5;
 
     // Place philosophers on the circle
@@ -41,8 +47,8 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
 
     // Place chopsticks on the circle
     for (int i = 0; i < 5; ++i) {
-        int x = centerX + (radius - (2 * constant)) * cos(chopstickAngles[i] * PI / 180);
-        int y = centerY + (radius - (2 * constant)) * sin(chopstickAngles[i] * PI / 180);
+        int x = centerX + (radius - (4 * constant)) * cos(chopstickAngles[i] * PI / 180);
+        int y = centerY + (radius - (4 * constant)) * sin(chopstickAngles[i] * PI / 180);
         FillEllipse(matrix, x, y, 4 * constant, 4 * constant, 0x00FF00); // Chopsticks (green)
         // Generate chopstick label
         char chopstickLabel[4];
