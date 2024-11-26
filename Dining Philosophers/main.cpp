@@ -24,8 +24,8 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
 
     // Angles to determine the positions of philosophers and chopsticks on the circle
     const double PI = 3.141592653589793;
-    const double philosopherAngles[5] = { 270, 342, 54, 126, 198 }; // Angles in degrees (positions of philosophers)
-    const double chopstickAngles[5] = { 306, 18, 90, 162, 234 };   // Angles in degrees (positions of chopsticks)
+    const double philosopherAngles[5] = { 270, 340, 50, 130, 200 }; // Angles in degrees (positions of philosophers)
+    const double chopstickAngles[5] = { 300, 20, 90, 160, 230 };   // Angles in degrees (positions of chopsticks)
     int constant = 5;
 
     // Place philosophers on the circle
