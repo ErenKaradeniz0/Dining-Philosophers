@@ -1,9 +1,10 @@
 ﻿#include <windows.h>
 #include <cmath>
 #include "icb_gui.h"
+int F1;
 
 // Global variables
-ICBYTES screenMatrix;
+ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3, PhilosopherCurrent;
 int F1;
 
 // Constants
@@ -13,6 +14,57 @@ const int NUM_PHILOSOPHERS = 5;
 enum State { THINKING, HUNGRY, EATING, STARVED };
 State philosopherStates[NUM_PHILOSOPHERS];
 
+
+//Blue agent coordinates
+ICBYTES BlueCoordinates{
+    {80, 1, 80, 101},    // Blue Front
+};
+
+//Red coordinates
+ICBYTES RedCoordinates{
+    {1, 1, 79, 101},    // Red Front
+};
+
+//Green Front coordinates
+ICBYTES GreenCoordinates{
+    {160, 1, 80, 101},   // Green Front
+};
+//print blue on scene
+void PrintBluePhilosophers(int x, int y, int id) {
+
+    int index = id + 1;
+    index = 1;
+
+    if (index)
+        Copy(PhilosophersBMPX3, BlueCoordinates.I(1, index), BlueCoordinates.I(2, index),
+            BlueCoordinates.I(3, index), BlueCoordinates.I(4, index),
+            PhilosopherCurrent);
+    PasteNon0(PhilosopherCurrent, x, y, screenMatrix); // Paste on screen
+}
+//print red on scene
+void PrintRedPhilosophers(int x, int y, int id) {
+
+    int index = id + 1;
+    index = 1;
+
+    if (index)
+        Copy(PhilosophersBMPX3, RedCoordinates.I(1, index), RedCoordinates.I(2, index),
+            RedCoordinates.I(3, index), RedCoordinates.I(4, index),
+            PhilosopherCurrent);
+    PasteNon0(PhilosopherCurrent, x, y, screenMatrix); // Paste on screen
+}
+
+void PrintGreenPhilosophers(int x, int y, int id) {
+
+    int index = id + 1;
+    index = 1;
+
+    if (index)
+        Copy(PhilosophersBMPX3, GreenCoordinates.I(1, index), GreenCoordinates.I(2, index),
+            GreenCoordinates.I(3, index), GreenCoordinates.I(4, index),
+            PhilosopherCurrent);
+    PasteNon0(PhilosopherCurrent, x, y, screenMatrix); // Paste on screen
+}
 // Semaphore handles for chopsticks
 HANDLE chopsticks[NUM_PHILOSOPHERS];
 bool chopstickAvailable[NUM_PHILOSOPHERS];
@@ -34,7 +86,7 @@ void PickUpChopsticks(int id, bool isSemaphoreMode);
 void PutDownChopsticks(int id);
 
 // Chopstick handling for non-semaphore mode
-void PickUpChopsticks(int id, bool isSemaphoreMode,int* hungryTime) {
+void PickUpChopsticks(int id, bool isSemaphoreMode, int* hungryTime) {
     int left = id;
     int right = (id + 1) % NUM_PHILOSOPHERS;
     if (chopstickAvailable[left] && chopstickAvailable[right]) {
@@ -96,9 +148,9 @@ void PhilosopherSemaphore(int id) {
     philosopherStates[id] = THINKING;
 
     while (philosopherStates[id] != STARVED) {
-        Sleep(100);
+        Sleep(750);
         philosopherStates[id] = HUNGRY;
-        Sleep(100);
+        Sleep(750);
 
         // Pick up chopsticks (use binary semaphores)
         WaitForSingleObject(chopsticks[id], 100);
@@ -106,13 +158,15 @@ void PhilosopherSemaphore(int id) {
 
         if (chopstickAvailable[id] == true && chopstickAvailable[id + 1] == true) {
 
-            PickUpChopsticks(id, isSemaphoreMode,&hungryTime);
-            Sleep(100);
+            PickUpChopsticks(id, isSemaphoreMode, &hungryTime);
+            Sleep(750);
 
             ReleaseSemaphore(chopsticks[id], 1, NULL);
             ReleaseSemaphore(chopsticks[(id + 1) % NUM_PHILOSOPHERS], 1, NULL);
 
             PutDownChopsticks(id);
+            Sleep(750);
+
         }
 
         philosopherStates[id] = THINKING;
@@ -134,12 +188,12 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
         int y = centerY + radius * sin(philosopherAngles[i] * PI / 180);
 
         int color = 0xFFFFFF; // Default white
-        if (philosopherStates[i] == THINKING) color = 0x0000FF; // Blue
-        else if (philosopherStates[i] == HUNGRY) color = 0xFF0000; // Red
-        else if (philosopherStates[i] == EATING) color = 0x00FF00; // Green
+        if (philosopherStates[i] == THINKING) PrintBluePhilosophers(x, y, i);
+        else if (philosopherStates[i] == HUNGRY) PrintRedPhilosophers(x, y, i);
+        else if (philosopherStates[i] == EATING) PrintGreenPhilosophers(x, y, i);
         else if (philosopherStates[i] == STARVED) color = 0x000000; // Black
 
-        FillEllipse(matrix, x, y, 8 * constant, 8 * constant, color);
+        //FillEllipse(matrix, x, y, 8 * constant, 8 * constant, color);
 
         char label[4];
         PrintNumbertoScreen(label, "PL", i);
@@ -211,6 +265,9 @@ void ICGUI_Create() {
 
 void ICGUI_main() {
     F1 = ICG_FrameMedium(5, 40, 1, 1);
+    ReadImage("Assests/sprites.bmp", PhilosophersBMP);
+    MagnifyX3(PhilosophersBMP, PhilosophersBMPX3);
+
     ICG_Button(5, 5, 150, 25, "Start NonSemaphore", StartNonSemaphore);
     ICG_Button(300, 5, 150, 25, "Start Semaphore", StartWithSemaphore);
     CreateImage(screenMatrix, 500, 500, ICB_UINT);
