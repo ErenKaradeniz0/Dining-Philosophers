@@ -3,7 +3,8 @@
 #include "icb_gui.h"
 
 // Global variables
-ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3, PhilosopherCurrent;
+ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3;
+ICBYTES PhilosopherBlue, PhilosopherRed, PhilosopherGreen, PhilosopherBrown;
 int F1;
 
 // Constants
@@ -14,55 +15,46 @@ enum State { THINKING, HUNGRY, EATING, STARVED };
 State philosopherStates[NUM_PHILOSOPHERS];
 
 
-//Blue agent coordinates
-ICBYTES BlueCoordinates{
-    {80, 1, 80, 101},    // Blue Front
+//coordinates
+ICBYTES Coordinates{
+    {6, 6, 75, 96},     // Red Front
+    {87, 6, 75, 96},    // Blue
+    {168, 6, 75, 96},   // Green
+    {249, 6, 75, 96},   // Brown
 };
 
-//Red coordinates
-ICBYTES RedCoordinates{
-    {1, 1, 79, 101},    // Red Front
-};
-
-//Green Front coordinates
-ICBYTES GreenCoordinates{
-    {160, 1, 80, 101},   // Green Front
-};
 //print blue on scene
-void PrintBluePhilosophers(int x, int y, int id) {
+void PreparePhilosophersBMP() {
+    Copy(PhilosophersBMPX3, Coordinates.I(1, 1), Coordinates.I(2, 1),
+        Coordinates.I(3, 1), Coordinates.I(4, 1),
+        PhilosopherRed);
 
-    int index = id + 1;
-    index = 1;
+    Copy(PhilosophersBMPX3, Coordinates.I(1, 2), Coordinates.I(2, 2),
+        Coordinates.I(3, 2), Coordinates.I(4, 2),
+        PhilosopherBlue);
 
-    if (index)
-        Copy(PhilosophersBMPX3, BlueCoordinates.I(1, index), BlueCoordinates.I(2, index),
-            BlueCoordinates.I(3, index), BlueCoordinates.I(4, index),
-            PhilosopherCurrent);
-    PasteNon0(PhilosopherCurrent, x, y, screenMatrix); // Paste on screen
+    Copy(PhilosophersBMPX3, Coordinates.I(1, 3), Coordinates.I(2, 3),
+        Coordinates.I(3, 3), Coordinates.I(4, 3),
+        PhilosopherGreen);
+
+    Copy(PhilosophersBMPX3, Coordinates.I(1, 4), Coordinates.I(2, 4),
+        Coordinates.I(3, 4), Coordinates.I(4, 4),
+        PhilosopherBrown);
+}
+void PrintBluePhilosophers(int x, int y) {
+    PasteNon0(PhilosopherBlue, x, y, screenMatrix); // Paste on screen
 }
 //print red on scene
-void PrintRedPhilosophers(int x, int y, int id) {
-
-    int index = id + 1;
-    index = 1;
-
-    if (index)
-        Copy(PhilosophersBMPX3, RedCoordinates.I(1, index), RedCoordinates.I(2, index),
-            RedCoordinates.I(3, index), RedCoordinates.I(4, index),
-            PhilosopherCurrent);
-    PasteNon0(PhilosopherCurrent, x, y, screenMatrix); // Paste on screen
+void PrintRedPhilosophers(int x, int y) {
+    PasteNon0(PhilosopherRed, x, y, screenMatrix); // Paste on screen
 }
 
-void PrintGreenPhilosophers(int x, int y, int id) {
+void PrintGreenPhilosophers(int x, int y) {
+    PasteNon0(PhilosopherGreen, x, y, screenMatrix); // Paste on screen
+}
 
-    int index = id + 1;
-    index = 1;
-
-    if (index)
-        Copy(PhilosophersBMPX3, GreenCoordinates.I(1, index), GreenCoordinates.I(2, index),
-            GreenCoordinates.I(3, index), GreenCoordinates.I(4, index),
-            PhilosopherCurrent);
-    PasteNon0(PhilosopherCurrent, x, y, screenMatrix); // Paste on screen
+void PrintBrownPhilosophers(int x, int y) {
+    PasteNon0(PhilosopherBrown, x, y, screenMatrix); // Paste on screen
 }
 // Semaphore handles for chopsticks
 HANDLE chopsticks[NUM_PHILOSOPHERS];
@@ -132,7 +124,7 @@ void PhilosopherNonSemaphore(int id) {
             else {
                 Sleep(100);
                 hungryTime += 100;
-                if (hungryTime >= 3000) {
+                if (hungryTime >= 5000) {
                     philosopherStates[id] = STARVED;
                     break;
                 }
@@ -154,22 +146,28 @@ void PhilosopherSemaphore(int id) {
         // Pick up chopsticks (use binary semaphores)
         WaitForSingleObject(chopsticks[id], 100);
         WaitForSingleObject(chopsticks[(id + 1) % NUM_PHILOSOPHERS], 100);
+        while (philosopherStates[id] == HUNGRY) {
+            if (chopstickAvailable[id] == true && chopstickAvailable[id + 1] == true) {
 
-        if (chopstickAvailable[id] == true && chopstickAvailable[id + 1] == true) {
+                PickUpChopsticks(id, isSemaphoreMode, &hungryTime);
+                Sleep(750);
 
-            PickUpChopsticks(id, isSemaphoreMode, &hungryTime);
-            Sleep(750);
+                ReleaseSemaphore(chopsticks[id], 1, NULL);
+                ReleaseSemaphore(chopsticks[(id + 1) % NUM_PHILOSOPHERS], 1, NULL);
 
-            ReleaseSemaphore(chopsticks[id], 1, NULL);
-            ReleaseSemaphore(chopsticks[(id + 1) % NUM_PHILOSOPHERS], 1, NULL);
-
-            PutDownChopsticks(id);
-            Sleep(750);
-
+                PutDownChopsticks(id);
+                Sleep(750);
+                philosopherStates[id] = THINKING;
+            }
+            else {
+                Sleep(100);
+                hungryTime += 100;
+                if (hungryTime >= 5000) {
+                    philosopherStates[id] = STARVED;
+                    break;
+                }
+            }
         }
-
-        philosopherStates[id] = THINKING;
-        Sleep(100);
     }
 }
 
@@ -187,16 +185,14 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
         int y = centerY + radius * sin(philosopherAngles[i] * PI / 180);
 
         int color = 0xFFFFFF; // Default white
-        if (philosopherStates[i] == THINKING) PrintBluePhilosophers(x, y, i);
-        else if (philosopherStates[i] == HUNGRY) PrintRedPhilosophers(x, y, i);
-        else if (philosopherStates[i] == EATING) PrintGreenPhilosophers(x, y, i);
-        else if (philosopherStates[i] == STARVED) color = 0x000000; // Black
-
-        //FillEllipse(matrix, x, y, 8 * constant, 8 * constant, color);
+        if (philosopherStates[i] == THINKING) PrintBluePhilosophers(x, y);
+        else if (philosopherStates[i] == HUNGRY) PrintRedPhilosophers(x, y);
+        else if (philosopherStates[i] == EATING) PrintGreenPhilosophers(x, y);
+        else if (philosopherStates[i] == STARVED) PrintBrownPhilosophers(x, y);
 
         char label[4];
         PrintNumbertoScreen(label, "PL", i);
-        Impress12x20(matrix, x + 5 * constant, y + 7 * constant, label, 0xFFFFFF);
+        Impress12x20(matrix, x + 15 * constant, y + 7 * constant, label, 0xFFFFFF);
     }
 
     // Draw chopsticks
@@ -266,7 +262,7 @@ void ICGUI_main() {
     F1 = ICG_FrameMedium(5, 40, 1, 1);
     ReadImage("Assests/sprites.bmp", PhilosophersBMP);
     MagnifyX3(PhilosophersBMP, PhilosophersBMPX3);
-
+    PreparePhilosophersBMP();
     ICG_Button(5, 5, 150, 25, "Start NonSemaphore", StartNonSemaphore);
     ICG_Button(300, 5, 150, 25, "Start Semaphore", StartWithSemaphore);
     CreateImage(screenMatrix, 500, 500, ICB_UINT);
