@@ -1,6 +1,7 @@
 ﻿#include <windows.h>
 #include <cmath>
 #include "icb_gui.h"
+int F1;
 
 // Global variables
 ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3, PhilosopherCurrent;
