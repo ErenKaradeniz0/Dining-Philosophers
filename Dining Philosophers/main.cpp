@@ -5,6 +5,7 @@
 // Global variables
 ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3;
 ICBYTES PhilosopherBlue, PhilosopherRed, PhilosopherGreen, PhilosopherBrown;
+ICBYTES Spaghetti;
 int F1;
 
 // Constants
@@ -22,6 +23,18 @@ ICBYTES Coordinates{
     {168, 6, 75, 96},   // Green
     {249, 6, 75, 96},   // Brown
 };
+
+void MacaroniState(int c) {
+    switch (c)
+    {
+    case 0: { Copy(PhilosophersBMPX3, 204, 105, 36, 30, Spaghetti); break; } // Macaroni %100
+    case 1: { Copy(PhilosophersBMPX3, 165, 105, 30, 30, Spaghetti); break; }// Macaroni %66
+    case 2: { Copy(PhilosophersBMPX3, 126, 105, 30, 30, Spaghetti); break; }// Macaroni %33
+    case 3: { Copy(PhilosophersBMPX3, 87, 105, 30, 30, Spaghetti); break; }// Macaroni %0
+    default:
+        break;
+    }
+}
 
 //print blue on scene
 void PreparePhilosophersBMP() {
@@ -115,6 +128,10 @@ int SetSpeed(char speed) {
         }
     return 1000;
 }
+
+int m_x = 5;
+int m_y = 5;
+
 // Philosopher thread function (non-semaphore mode)
 void PhilosopherNonSemaphore(int id) {
     int hungryTime = 0;
@@ -128,8 +145,9 @@ void PhilosopherNonSemaphore(int id) {
         while (philosopherStates[id] == HUNGRY) {
             PickUpChopsticks(id, isSemaphoreMode, hungryTime);
             if (philosopherStates[id] == EATING) {
+                
+                Sleep(sleepDuration / 4);
                 hungryTime = 0;
-                Sleep(sleepDuration);
                 PutDownChopsticks(id);
                 Sleep(sleepDuration);
                 break;
@@ -240,6 +258,16 @@ void PrintNumbertoScreen(char* label, const char* base, int num) {
     label[2] = '0' + num;
     label[3] = '\0';
 }
+
+void PrintMacaroni(){
+    for (int i = 0; i < 4; i++) {
+        MacaroniState(i);
+        PasteNon0(Spaghetti, m_x + 30, m_y, screenMatrix);
+        Sleep(30);
+    }
+}
+
+
 
 // Drawing thread
 DWORD WINAPI DrawThread(LPVOID lpParam) {
