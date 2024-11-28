@@ -19,6 +19,7 @@ struct SpagetthiStruct
 {
     int x;
     int y;
+    //Again Push
 };
 
 SpagetthiStruct SpaghettiPlate[NUM_PHILOSOPHERS];
