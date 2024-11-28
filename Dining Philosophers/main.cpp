@@ -15,6 +15,13 @@ const int NUM_PHILOSOPHERS = 5;
 enum State { THINKING, HUNGRY, EATING, STARVED };
 State philosopherStates[NUM_PHILOSOPHERS];
 
+struct SpagetthiStruct
+{
+    int x;
+    int y;
+};
+
+SpagetthiStruct SpaghettiPlate[NUM_PHILOSOPHERS];
 
 //coordinates
 ICBYTES Coordinates{
@@ -24,7 +31,9 @@ ICBYTES Coordinates{
     {249, 6, 75, 96},   // Brown
 };
 
-void MacaroniState(int c) {
+
+
+void SpaghettiState(int c) {
     switch (c)
     {
     case 0: { Copy(PhilosophersBMPX3, 204, 105, 36, 30, Spaghetti); break; } // Macaroni %100
@@ -34,6 +43,10 @@ void MacaroniState(int c) {
     default:
         break;
     }
+}
+
+void SpaghettiPrint(int x,int y) {
+    PasteNon0(Spaghetti, x, y, screenMatrix);
 }
 
 //print blue on scene
@@ -129,24 +142,29 @@ int SetSpeed(char speed) {
     return 1000;
 }
 
-int m_x = 5;
-int m_y = 5;
 
 // Philosopher thread function (non-semaphore mode)
 void PhilosopherNonSemaphore(int id) {
     int hungryTime = 0;
     philosopherStates[id] = THINKING;
+    SpaghettiState(3);
+    SpaghettiPrint(SpaghettiPlate[id].x, SpaghettiPlate[id].y);
     int sleepDuration = SetSpeed('f'); //s or f
     while (philosopherStates[id] != STARVED) {
         Sleep(sleepDuration);
         philosopherStates[id] = HUNGRY;
+        SpaghettiState(0);
+        SpaghettiPrint(SpaghettiPlate[id].x, SpaghettiPlate[id].y);
         Sleep(sleepDuration);
 
         while (philosopherStates[id] == HUNGRY) {
             PickUpChopsticks(id, isSemaphoreMode, hungryTime);
             if (philosopherStates[id] == EATING) {
-                
-                Sleep(sleepDuration / 4);
+                for (int i = 0; i < 4; i++) {
+                    SpaghettiState(i);
+                    SpaghettiPrint(SpaghettiPlate[id].x, SpaghettiPlate[id].y);
+                    Sleep(sleepDuration / 4);
+                }
                 hungryTime = 0;
                 PutDownChopsticks(id);
                 Sleep(sleepDuration);
@@ -208,24 +226,35 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
     const double PI = 3.141592653589793;
     const double philosopherAngles[NUM_PHILOSOPHERS] = { 270, 340, 50, 125, 200 };
     const double chopstickAngles[NUM_PHILOSOPHERS] = { 240,300, 10, 85,170 };
-    int constant = 5;
-
-    //Draw Table
-    FillEllipse(matrix, 165, 165, 100, 100, 0xA1662F);
-
+    int constant = 5; 
     // Draw philosophers
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         int x = centerX + radius * cos(philosopherAngles[i] * PI / 180);
         int y = centerY + radius * sin(philosopherAngles[i] * PI / 180);
 
-        if (philosopherStates[i] == THINKING) PrintBluePhilosophers(x, y);
-        else if (philosopherStates[i] == HUNGRY) PrintRedPhilosophers(x, y);
-        else if (philosopherStates[i] == EATING) PrintGreenPhilosophers(x, y);
+        int sp_x = centerX + 20 + (radius - 75 ) * cos(philosopherAngles[i] * PI / 180);
+        int sp_y = centerY + 30 + (radius - 75 ) * sin(philosopherAngles[i] * PI / 180);
+
+        SpaghettiPlate[i] = { sp_x, sp_y };
+
+        if (philosopherStates[i] == THINKING) {
+            PrintBluePhilosophers(x, y);
+        }
+        else if (philosopherStates[i] == HUNGRY)
+        {
+            PrintRedPhilosophers(x, y);
+        }
+        else if (philosopherStates[i] == EATING) 
+        { 
+            PrintGreenPhilosophers(x, y); 
+        }
         else if (philosopherStates[i] == STARVED) PrintBrownPhilosophers(x, y);
 
         char label[4];
         PrintNumbertoScreen(label, "PL", i + 1);
         Impress12x20(matrix, x + 5 * constant, y - 5 * constant, label, 0xFFFFFF);
+
+
     }
 
     // Draw chopsticks
@@ -259,23 +288,33 @@ void PrintNumbertoScreen(char* label, const char* base, int num) {
     label[3] = '\0';
 }
 
-void PrintMacaroni(){
-    for (int i = 0; i < 4; i++) {
-        MacaroniState(i);
-        PasteNon0(Spaghetti, m_x + 30, m_y, screenMatrix);
-        Sleep(30);
-    }
-}
+//void PrintMacaroni(){
+//    while(true) {
+//        for (int i = 0; i < 4; i++) {
+//            MacaroniState(i);
+//            m_x = 30;
+//            PasteNon0(Spaghetti, m_x,  m_y, screenMatrix);
+//            Sleep(100);
+//        }
+//    }   
+//}
 
 
 
 // Drawing thread
 DWORD WINAPI DrawThread(LPVOID lpParam) {
+    //CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PrintMacaroni, NULL, 0, NULL);
+
+    screenMatrix = 0; // Clear the screen
+
+    //Draw Table
+    FillEllipse(screenMatrix, 165, 165, 100, 100, 0xA1662F);
+
     while (true) {
-        screenMatrix = 0; // Clear the screen
+        
         DrawDiningPhilosophers(screenMatrix);
         DisplayImage(F1, screenMatrix);
-        Sleep(30); // Refresh every 30 ms
+        Sleep(0); // Refresh every 30 ms
     }
 }
 
