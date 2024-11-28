@@ -77,14 +77,14 @@ void PickUpChopsticks(int id, bool isSemaphoreMode);
 void PutDownChopsticks(int id);
 
 // Chopstick handling for non-semaphore mode
-void PickUpChopsticks(int id, bool isSemaphoreMode, int* hungryTime) {
+void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime) {
     int left = id;
     int right = (id + 1) % NUM_PHILOSOPHERS;
     if (chopstickAvailable[left] && chopstickAvailable[right]) {
         chopstickAvailable[left] = false;
         chopstickAvailable[right] = false;
         philosopherStates[id] = EATING;
-        *hungryTime = 0;
+        hungryTime = 0;
     }
     else if (chopstickAvailable[left] && !isSemaphoreMode) {
         chopstickAvailable[left] = false;
@@ -102,23 +102,36 @@ void PutDownChopsticks(int id) {
     philosopherStates[id] = THINKING;
 }
 
+// f for fast, s for slow
+int SetSpeed(char speed) {
+    // Lambda
+        switch (speed) {
+        case 'f':
+            return 300; // Fast
+        case 's':
+            return 2000; // Slow
+        default:
+            return 1000; // Default
+        }
+    return 1000;
+}
 // Philosopher thread function (non-semaphore mode)
 void PhilosopherNonSemaphore(int id) {
     int hungryTime = 0;
     philosopherStates[id] = THINKING;
-
+    int sleepDuration = SetSpeed('f'); //s or f
     while (philosopherStates[id] != STARVED) {
-        Sleep(750);
+        Sleep(sleepDuration);
         philosopherStates[id] = HUNGRY;
-        Sleep(750);
+        Sleep(sleepDuration);
 
         while (philosopherStates[id] == HUNGRY) {
-            PickUpChopsticks(id, isSemaphoreMode, &hungryTime);
+            PickUpChopsticks(id, isSemaphoreMode, hungryTime);
             if (philosopherStates[id] == EATING) {
                 hungryTime = 0;
-                Sleep(750);
+                Sleep(sleepDuration);
                 PutDownChopsticks(id);
-                Sleep(750);
+                Sleep(sleepDuration);
                 break;
             }
             else {
@@ -136,36 +149,36 @@ void PhilosopherNonSemaphore(int id) {
 // Philosopher thread function (semaphore mode)
 void PhilosopherSemaphore(int id) {
     int hungryTime = 0;
+    int left = id;
+    int right = (id + 1) % NUM_PHILOSOPHERS;
+    int sleepDuration = SetSpeed('f'); //s or f
     philosopherStates[id] = THINKING;
 
     while (philosopherStates[id] != STARVED) {
-        Sleep(750);
+        Sleep(sleepDuration);
         philosopherStates[id] = HUNGRY;
-        Sleep(750);
+        Sleep(sleepDuration);
 
+        hungryTime += 100;
+        if (hungryTime >= 5000) {
+            philosopherStates[id] = STARVED;
+            break;
+        }
         // Pick up chopsticks (use binary semaphores)
-        WaitForSingleObject(chopsticks[id], 100);
-        WaitForSingleObject(chopsticks[(id + 1) % NUM_PHILOSOPHERS], 100);
+        WaitForSingleObject(chopsticks[left], sleepDuration);
+        WaitForSingleObject(chopsticks[right], sleepDuration);
         while (philosopherStates[id] == HUNGRY) {
-            if (chopstickAvailable[id] == true && chopstickAvailable[id + 1] == true) {
+            if (chopstickAvailable[left] == true && chopstickAvailable[right] == true) {
 
-                PickUpChopsticks(id, isSemaphoreMode, &hungryTime);
-                Sleep(750);
+                PickUpChopsticks(id, isSemaphoreMode, hungryTime);
+                Sleep(2*sleepDuration);
 
-                ReleaseSemaphore(chopsticks[id], 1, NULL);
-                ReleaseSemaphore(chopsticks[(id + 1) % NUM_PHILOSOPHERS], 1, NULL);
+                ReleaseSemaphore(chopsticks[left], 1, NULL);
+                ReleaseSemaphore(chopsticks[right], 1, NULL);
 
                 PutDownChopsticks(id);
-                Sleep(750);
+                Sleep(2 * sleepDuration);
                 philosopherStates[id] = THINKING;
-            }
-            else {
-                Sleep(100);
-                hungryTime += 100;
-                if (hungryTime >= 5000) {
-                    philosopherStates[id] = STARVED;
-                    break;
-                }
             }
         }
     }
@@ -175,38 +188,49 @@ void PhilosopherSemaphore(int id) {
 void DrawDiningPhilosophers(ICBYTES& matrix) {
     const int centerX = 230, centerY = 220, radius = 150;
     const double PI = 3.141592653589793;
-    const double philosopherAngles[NUM_PHILOSOPHERS] = { 50, 130, 200, 270, 340 };
-    const double chopstickAngles[NUM_PHILOSOPHERS] = { 20, 80, 160, 235, 318 };
+    const double philosopherAngles[NUM_PHILOSOPHERS] = { 270, 340, 50, 125, 200 };
+    const double chopstickAngles[NUM_PHILOSOPHERS] = { 240,300, 10, 85,170 };
     int constant = 5;
+
+    //Draw Table
+    FillEllipse(matrix, 165, 165, 100, 100, 0xA1662F);
 
     // Draw philosophers
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         int x = centerX + radius * cos(philosopherAngles[i] * PI / 180);
         int y = centerY + radius * sin(philosopherAngles[i] * PI / 180);
 
-        int color = 0xFFFFFF; // Default white
         if (philosopherStates[i] == THINKING) PrintBluePhilosophers(x, y);
         else if (philosopherStates[i] == HUNGRY) PrintRedPhilosophers(x, y);
         else if (philosopherStates[i] == EATING) PrintGreenPhilosophers(x, y);
         else if (philosopherStates[i] == STARVED) PrintBrownPhilosophers(x, y);
 
         char label[4];
-        PrintNumbertoScreen(label, "PL", i);
-        Impress12x20(matrix, x + 15 * constant, y + 7 * constant, label, 0xFFFFFF);
+        PrintNumbertoScreen(label, "PL", i + 1);
+        Impress12x20(matrix, x + 5 * constant, y - 5 * constant, label, 0xFFFFFF);
     }
 
     // Draw chopsticks
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-        int x = centerX + (radius - (2 * constant)) * cos(chopstickAngles[i] * PI / 180);
-        int y = centerY + (radius - (2 * constant)) * sin(chopstickAngles[i] * PI / 180);
+        int centerXChopstick = centerX + (radius - (15 * constant)) * cos(chopstickAngles[i] * PI / 180);
+        int centerYChopstick = centerY + (radius - (15 * constant)) * sin(chopstickAngles[i] * PI / 180);
 
+        int chopstickWidth = constant;
+        int chopstickHeight = 6 * constant;
+
+        // Set the color based on availability
         int color = chopstickAvailable[i] ? 0x00FF00 : 0xFF0000; // Green if available, red if not
-        FillEllipse(matrix, x, y, 4 * constant, 4 * constant, color);
+
+        int rectX = centerXChopstick - (chopstickWidth / 2) + 40;
+        int rectY = centerYChopstick - (chopstickHeight / 2) + 50;
+
+        FillRect(matrix, rectX, rectY, chopstickWidth, chopstickHeight, color);
 
         char label[4];
-        PrintNumbertoScreen(label, "CH", i);
-        Impress12x20(matrix, x + 1 * constant, y + 2 * constant, label, 0xFFFFFF);
+        PrintNumbertoScreen(label, "CH", i + 1);
+        Impress12x20(matrix, centerXChopstick, centerYChopstick + 40, label, 0xFFFFFF);
     }
+
 }
 
 // Utility to print labels
