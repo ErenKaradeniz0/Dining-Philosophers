@@ -24,14 +24,13 @@ int SetSpeed(char speed) {
     return 1000;
 }
 
-int sleepDuration = SetSpeed('s'); //s or f
+int sleepDuration = SetSpeed('f'); //s or f
 
 struct SpagetthiStruct
 {
     int x;
     int y;
     int State;
-    //Again Push
 };
 
 enum State { THINKING, HUNGRY, EATING, STARVED };
@@ -69,15 +68,27 @@ Chopstic chopsticks[NUM_PHILOSOPHERS];
 // Semaphore handles for chopsticks
 HANDLE chopsticksHandle[NUM_PHILOSOPHERS];
 
+HANDLE threads[NUM_PHILOSOPHERS + 1]; // +1 for DrawThread
 // Semaphore mode flag
 bool isSemaphoreMode = false;
 
 //coordinates
 ICBYTES Coordinates{
     {6, 6, 75, 96},     // Red Front
-    {87, 6, 75, 96},    // Blue
-    {168, 6, 75, 96},   // Green
-    {249, 6, 75, 96},   // Brown
+    {87, 6, 75, 96},    // Blue Front
+    {168, 6, 75, 96},   // Green Front
+    {249, 6, 75, 96},   // Brown Front
+    
+    {18, 114, 45, 90},     // Red Right
+    {72, 114, 45, 90},    // Blue Right
+    {126, 114, 45, 90},   // Green Right
+    {180, 114, 45, 90},   // Brown Right
+
+    {27, 213, 45, 90},     // Red Left
+    {78, 213, 45, 90},    // Blue Left
+    {129, 213, 45, 90},   // Green Left
+    {183, 213, 45, 90},   // Brown Left
+
 };
 
 // Mathematical variables
@@ -90,10 +101,10 @@ int constant = 5;
 void SpaghettiState(int c) {
     switch (c)
     {
-    case 0: { Copy(PhilosophersBMPX3, 204, 105, 36, 30, Spaghetti); break; } // Macaroni %100
-    case 1: { Copy(PhilosophersBMPX3, 165, 105, 30, 30, Spaghetti); break; }// Macaroni %66
-    case 2: { Copy(PhilosophersBMPX3, 126, 105, 30, 30, Spaghetti); break; }// Macaroni %33
-    case 3: { Copy(PhilosophersBMPX3, 87, 105, 30, 30, Spaghetti); break; }// Macaroni %0
+    case 0: { Copy(PhilosophersBMPX3, 204, 105, 36, 30, Spaghetti); break; }    //  Spaghetti %100
+    case 1: { Copy(PhilosophersBMPX3, 165, 105, 30, 30, Spaghetti); break; }    //  Spaghetti %66
+    case 2: { Copy(PhilosophersBMPX3, 126, 105, 30, 30, Spaghetti); break; }    //  Spaghetti %33
+    case 3: { Copy(PhilosophersBMPX3, 87, 105, 30, 30, Spaghetti); break; }     // Spaghetti %0
     default:
         break;
     }
@@ -105,20 +116,52 @@ void SpaghettiPrint(int x,int y) {
 
 //print blue on scene
 void PreparePhilosophersBMP() {
-    Copy(PhilosophersBMPX3, Coordinates.I(1, 1), Coordinates.I(2, 1),
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 1), Coordinates.I(2, 1),
         Coordinates.I(3, 1), Coordinates.I(4, 1),
         PhilosopherRed);
 
-    Copy(PhilosophersBMPX3, Coordinates.I(1, 2), Coordinates.I(2, 2),
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 2), Coordinates.I(2, 2),
         Coordinates.I(3, 2), Coordinates.I(4, 2),
         PhilosopherBlue);
 
-    Copy(PhilosophersBMPX3, Coordinates.I(1, 3), Coordinates.I(2, 3),
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 3), Coordinates.I(2, 3),
         Coordinates.I(3, 3), Coordinates.I(4, 3),
         PhilosopherGreen);
 
-    Copy(PhilosophersBMPX3, Coordinates.I(1, 4), Coordinates.I(2, 4),
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 4), Coordinates.I(2, 4),
         Coordinates.I(3, 4), Coordinates.I(4, 4),
+        PhilosopherBrown);    
+    
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 5), Coordinates.I(2, 5),
+        Coordinates.I(3, 5), Coordinates.I(4, 5),
+        PhilosopherRed);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 6), Coordinates.I(2, 6),
+        Coordinates.I(3, 6), Coordinates.I(4, 6),
+        PhilosopherBlue);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 7), Coordinates.I(2, 7),
+        Coordinates.I(3, 7), Coordinates.I(4, 7),
+        PhilosopherGreen);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 8), Coordinates.I(2, 8),
+        Coordinates.I(3, 8), Coordinates.I(4, 8),
+        PhilosopherBrown);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 9), Coordinates.I(2, 9),
+        Coordinates.I(3, 9), Coordinates.I(4, 9),
+        PhilosopherRed);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 10), Coordinates.I(2, 10),
+        Coordinates.I(3, 10), Coordinates.I(4, 10),
+        PhilosopherBlue);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 11), Coordinates.I(2, 11),
+        Coordinates.I(3, 11), Coordinates.I(4, 11),
+        PhilosopherGreen);
+
+    Copy(PhilosophersBMP2X3, Coordinates.I(1, 12), Coordinates.I(2, 12),
+        Coordinates.I(3, 12), Coordinates.I(4, 12),
         PhilosopherBrown);
 }
 void PrintBluePhilosophers(int x, int y) {
@@ -147,7 +190,7 @@ DWORD WINAPI DrawThread(LPVOID lpParam);
 void PrintNumbertoScreen(char* label, const char* base, int num);
 
 // Utility functions for chopstick management   
-void PickUpChopsticks(int id, bool isSemaphoreMode);
+void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime);
 void PutDownChopsticks(int id);
 
 // Chopstick handling for non-semaphore mode
@@ -231,8 +274,6 @@ void PhilosopherSemaphore(int id) {
         while (philosophers[id].State == HUNGRY) {
             if (chopsticks[left].Available == true && chopsticks[right].Available == true) {
 
-                
-
                 PickUpChopsticks(id, isSemaphoreMode, hungryTime);
 
                 for (int i = 0; i < 4; i++) {
@@ -245,8 +286,6 @@ void PhilosopherSemaphore(int id) {
                 /*Eğer nonSemafor un yeme hızı ile aynı çalışmasını istiyorsan
                     forun içindekini sleepDuration ı 2 yerine 4 e böl
                     aşağıdaki sleep i aç ama kat sayı çarpanı verme --> sleepDuration kadar beklesin*/
-
-
 
 
                 ReleaseSemaphore(chopsticksHandle[left], 1, NULL);
@@ -347,10 +386,11 @@ DWORD WINAPI DrawThread(LPVOID lpParam) {
     //Draw Table
     FillEllipse(screenMatrix, 165, 165, 100, 100, 0xA1662F);
 
-    //test
     ICBYTES test;
-    Copy(PhilosophersBMPX3, 4, 4 ,75, 93, test); //FRONT RED
-    PasteNon0(test, 0, 0, screenMatrix); // Paste on screen
+    //Copy(PhilosophersBMPX3, 4, 4 ,75, 93, test); //FRONT RED
+    //test
+
+    PasteNon0(test, 1, 1, screenMatrix); // Paste on screen
 
     while (true) {
         DrawDiningPhilosophers(screenMatrix);
@@ -359,29 +399,43 @@ DWORD WINAPI DrawThread(LPVOID lpParam) {
     }
 }
 
+void KillThreads() {
+    for (int i = 0; i < NUM_PHILOSOPHERS + 1; ++i) {
+        if (threads[i] != NULL) {
+            TerminateThread(threads[i], 0);
+            CloseHandle(threads[i]);
+            threads[i] = NULL;
+        }
+    }
+
+}
 // Start non-semaphore mode
 void StartNonSemaphore() {
+    KillThreads(); // Kill previous threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         chopsticks[i].Available = true;
+        SpaghettiPlate[i].State = 3;
     }
     isSemaphoreMode = false;
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhilosopherNonSemaphore, (LPVOID)i, 0, NULL);
+        threads[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhilosopherNonSemaphore, (LPVOID)i, 0, NULL);
     }
-    CreateThread(NULL, 0, DrawThread, NULL, 0, NULL);
+    threads[NUM_PHILOSOPHERS] = CreateThread(NULL, 0, DrawThread, NULL, 0, NULL);
 }
 
 // Start semaphore mode
 void StartWithSemaphore() {
+    KillThreads(); // Kill previous threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         chopsticks[i].Available = true;
+        SpaghettiPlate[i].State = 3;
         chopsticksHandle[i] = CreateSemaphore(NULL, 1, 1, NULL);
     }
     isSemaphoreMode = true;
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhilosopherSemaphore, (LPVOID)i, 0, NULL);
+        threads[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhilosopherSemaphore, (LPVOID)i, 0, NULL);
     }
-    CreateThread(NULL, 0, DrawThread, NULL, 0, NULL);
+    threads[NUM_PHILOSOPHERS] = CreateThread(NULL, 0, DrawThread, NULL, 0, NULL);
 }
 
 // GUI setup
