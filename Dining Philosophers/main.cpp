@@ -22,7 +22,7 @@
         return 1000;
     }
 
-    int sleepDuration = SetSpeed('s'); //s or f
+    int sleepDuration = SetSpeed('f'); //s or f
 
     struct SpagetthiStruct
     {
@@ -37,32 +37,17 @@
         int id;
         int x, y;
         State state;
-        ICBYTES* CurrentImage;
+        bool hasImage;
+        ICBYTES CurrentImage;
 
-        Philosopher() : id(-1), x(0), y(0), state(THINKING), CurrentImage(nullptr) {
-            AllocateImage();
+        Philosopher() : id(-1), x(0), y(0), state(THINKING), hasImage(false){}
+
+        void SetId(int philosopher_id)
+        {
+            id = philosopher_id;
+            hasImage = true;
         }
 
-        Philosopher(int philosopher_id) : id(philosopher_id), x(0), y(0), state(THINKING), CurrentImage(nullptr) {
-            AllocateImage();
-        }
-
-        void AllocateImage() {
-            if (CurrentImage == nullptr) {
-                CurrentImage = new ICBYTES;
-            }
-        }
-
-        void DeallocateImage() {
-            if (CurrentImage != nullptr) {
-                delete CurrentImage;
-                CurrentImage = nullptr;
-            }
-        }
-
-        ~Philosopher() {
-            DeallocateImage();
-        }
     };
 
     struct Chopstic {
@@ -150,40 +135,85 @@
         PasteNon0(Spaghetti, x, y, screenMatrix);
     }
 
-    // Filozof durumlarına göre görüntü kopyalama fonksiyonu
     void PreparePhilosopher(Philosopher& philosopher) {
-        int row = 1 + philosopher.id * 2;  // Her filozof için farklı satır numarası
+        if (philosopher.id == 0) { //front
+            if (philosopher.state == THINKING) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 2), Coordinates.I(2, 2),
+                    Coordinates.I(3, 2), Coordinates.I(4, 2),
+                    philosopher.CurrentImage);
+            }
+            else if (philosopher.state == HUNGRY) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 1), Coordinates.I(2, 1),
+                    Coordinates.I(3, 1), Coordinates.I(4, 1),
+                    philosopher.CurrentImage);
+            }
+            else if (philosopher.state == EATING) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 3), Coordinates.I(2, 3),
+                    Coordinates.I(3, 3), Coordinates.I(4, 3),
+                    philosopher.CurrentImage);
 
-        // Filozof durumuna göre hangi resmin yükleneceği
-        if (philosopher.CurrentImage != nullptr) {
-            switch (philosopher.state) {
-            case THINKING:
-                Copy(PhilosophersBMP2X3, Coordinates.I(row, 2), Coordinates.I(row + 1, 2),
-                    Coordinates.I(row + 2, 2), Coordinates.I(row + 3, 2), *philosopher.CurrentImage);
-                break;
-            case HUNGRY:
-                Copy(PhilosophersBMP2X3, Coordinates.I(row, 1), Coordinates.I(row + 1, 1),
-                    Coordinates.I(row + 2, 1), Coordinates.I(row + 3, 1), *philosopher.CurrentImage);
-                break;
-            case EATING:
-                Copy(PhilosophersBMP2X3, Coordinates.I(row, 3), Coordinates.I(row + 1, 3),
-                    Coordinates.I(row + 2, 3), Coordinates.I(row + 3, 3), *philosopher.CurrentImage);
-                break;
-            case STARVED:
-                Copy(PhilosophersBMP2X3, Coordinates.I(row, 4), Coordinates.I(row + 1, 4),
-                    Coordinates.I(row + 2, 4), Coordinates.I(row + 3, 4), *philosopher.CurrentImage);
-                break;
+            }
+            else if (philosopher.state == STARVED) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 4), Coordinates.I(2, 4),
+                    Coordinates.I(3, 4), Coordinates.I(4, 4),
+                    philosopher.CurrentImage);
             }
         }
-        else {
-            char test = 'T';
+        else if (philosopher.id == 1 || philosopher.id == 2) {
+            if (philosopher.state == THINKING) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 6), Coordinates.I(2, 6),
+                    Coordinates.I(3, 6), Coordinates.I(4, 6),
+                    philosopher.CurrentImage);
+            }
+            else if (philosopher.state == HUNGRY) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 5), Coordinates.I(2, 5),
+                    Coordinates.I(3, 5), Coordinates.I(4, 5),
+                    philosopher.CurrentImage);
+            }
+            else if (philosopher.state == EATING) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 7), Coordinates.I(2, 7),
+                    Coordinates.I(3, 7), Coordinates.I(4, 7),
+                    philosopher.CurrentImage);
+
+            }
+            else if (philosopher.state == STARVED) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 8), Coordinates.I(2, 8),
+                    Coordinates.I(3, 8), Coordinates.I(4, 8),
+                    philosopher.CurrentImage);
+            }
         }
+        else if (philosopher.id == 3 || philosopher.id == 4) {
+            if (philosopher.state == THINKING) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 10), Coordinates.I(2, 10),
+                    Coordinates.I(3, 10), Coordinates.I(4, 10),
+                    philosopher.CurrentImage);
+            }
+            else if (philosopher.state == HUNGRY) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 9), Coordinates.I(2, 9),
+                    Coordinates.I(3, 9), Coordinates.I(4, 9),
+                    philosopher.CurrentImage);
+            }
+            else if (philosopher.state == EATING) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 11), Coordinates.I(2, 11),
+                    Coordinates.I(3, 11), Coordinates.I(4, 11),
+                    philosopher.CurrentImage);
+
+            }
+            else if (philosopher.state == STARVED) {
+                Copy(PhilosophersBMP2X3, Coordinates.I(1, 12), Coordinates.I(2, 12),
+                    Coordinates.I(3, 12), Coordinates.I(4, 12),
+                    philosopher.CurrentImage);
+            }
+        }
+
     }
+    
 
     // Filozofları ekranda yazdırma fonksiyonu
     void PrintPhilosophers() {
-        for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-            PasteNon0(*philosophers[i].CurrentImage, philosophers[i].x, philosophers[i].y, screenMatrix);
+        for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+            if(philosophers[i].hasImage)
+                PasteNon0(philosophers[i].CurrentImage, philosophers[i].x, philosophers[i].y, screenMatrix);
         }
     }
     void PhilosopherChangeState(int id, State newState) {
@@ -280,11 +310,10 @@
 
                 PutDownChopsticks(id);
                 philosophers[id].state = THINKING;
-                hungryTime = 0; // Yemek yedikten sonra açlık süresini sıfırla
+                hungryTime = 0;
                 Sleep(2 * sleepDuration);
             }
             else {
-                // Çubuklar uygun değilse tekrar denemeden önce bekle
                 Sleep(100);
             }
         }
@@ -334,7 +363,7 @@
     // Drawing the dining philosophers and chopsticks
     void DrawDiningPhilosophers(ICBYTES& matrix) {
         char label[4];
-        for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
+        for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
 
             // Draw philosophers
             PrintPhilosophers();
@@ -398,13 +427,13 @@
     // Start non-semaphore mode
     void StartNonSemaphore() {
         KillThreads(); // Kill previous threads
-        for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-            philosophers[i] = Philosopher(i);
+        for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+            philosophers[i].SetId(i);
             chopsticks[i].Available = true;
             SpaghettiPlate[i].State = 3;
         }
         isSemaphoreMode = false;
-        for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
+        for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
             threads[i] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhilosopherNonSemaphore, (LPVOID)i, 0, NULL);
         }
         threads[NUM_PHILOSOPHERS] = CreateThread(NULL, 0, DrawThread, NULL, 0, NULL);
@@ -414,7 +443,7 @@
     void StartWithSemaphore() {
         KillThreads(); // Kill previous threads
         for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
-            philosophers[i] = Philosopher(i);
+            philosophers[i].SetId(i);
             chopsticks[i].Available = true;
             SpaghettiPlate[i].State = 3;
             chopsticksHandle[i] = CreateSemaphore(NULL, 1, 1, NULL);
