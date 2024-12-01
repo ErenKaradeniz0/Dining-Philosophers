@@ -4,7 +4,7 @@
 
 // Global variables
 ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3;
-ICBYTES PhilosopherBlue, PhilosopherRed, PhilosopherGreen, PhilosopherBrown;
+ICBYTES PhilosopherFront, PhilosopherRight, PhilosopherLeft;
 ICBYTES Spaghetti;
 
 //test
@@ -24,7 +24,7 @@ int SetSpeed(char speed) {
     return 1000;
 }
 
-int sleepDuration = SetSpeed('f'); //s or f
+int sleepDuration = SetSpeed('s'); //s or f
 
 struct SpagetthiStruct
 {
@@ -36,6 +36,7 @@ struct SpagetthiStruct
 enum State { THINKING, HUNGRY, EATING, STARVED };
 
 struct Philosopher {
+    int id;
     int x;
     int y;
     State State;
@@ -79,15 +80,16 @@ ICBYTES Coordinates{
     {168, 6, 75, 96},   // Green Front
     {249, 6, 75, 96},   // Brown Front
     
+    {27, 213, 45, 90},     // Red Left
+    {78, 213, 45, 90},    // Blue Left
+    {129, 213, 45, 90},   // Green Left
+    {183, 213, 45, 90},   // Brown Left
+
     {18, 114, 45, 90},     // Red Right
     {72, 114, 45, 90},    // Blue Right
     {126, 114, 45, 90},   // Green Right
     {180, 114, 45, 90},   // Brown Right
 
-    {27, 213, 45, 90},     // Red Left
-    {78, 213, 45, 90},    // Blue Left
-    {129, 213, 45, 90},   // Green Left
-    {183, 213, 45, 90},   // Brown Left
 
 };
 
@@ -97,6 +99,19 @@ const double PI = 3.141592653589793;
 const double philosopherAngles[NUM_PHILOSOPHERS] = { 270, 340, 50, 125, 200 };
 const double chopstickAngles[NUM_PHILOSOPHERS] = { 240,300, 10, 85,170 };
 int constant = 5;
+
+// Function declarations
+void PhilosopherNonSemaphore(int id);
+void PhilosopherSemaphore(int id);
+void DrawDiningPhilosophers(ICBYTES& matrix);
+void StartNonSemaphore();
+void StartWithSemaphore();
+DWORD WINAPI DrawThread(LPVOID lpParam);
+void PrintNumbertoScreen(char* label, const char* base, int num);
+
+// Utility functions for chopstick management   
+void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime);
+void PutDownChopsticks(int id);
 
 void SpaghettiState(int c) {
     switch (c)
@@ -115,84 +130,90 @@ void SpaghettiPrint(int x,int y) {
 }
 
 //print blue on scene
-void PreparePhilosophersBMP() {
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 1), Coordinates.I(2, 1),
-        Coordinates.I(3, 1), Coordinates.I(4, 1),
-        PhilosopherRed);
+void PreparePhilosopher(Philosopher philosopher) {
+    if (philosopher.id == 0) { //front
+        if (philosopher.State == THINKING) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 2), Coordinates.I(2, 2),
+                Coordinates.I(3, 2), Coordinates.I(4, 2),
+                PhilosopherFront);
+        }
+        else if (philosopher.State == HUNGRY) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 1), Coordinates.I(2, 1),
+                Coordinates.I(3, 1), Coordinates.I(4, 1),
+                PhilosopherFront);
+        }
+        else if (philosopher.State == EATING) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 3), Coordinates.I(2, 3),
+                Coordinates.I(3, 3), Coordinates.I(4, 3),
+                PhilosopherFront);
 
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 2), Coordinates.I(2, 2),
-        Coordinates.I(3, 2), Coordinates.I(4, 2),
-        PhilosopherBlue);
+        }        
+        else if (philosopher.State == STARVED) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 4), Coordinates.I(2, 4),
+                Coordinates.I(3, 4), Coordinates.I(4, 4),
+                PhilosopherFront);
+        }
+    }
+    else if (philosopher.id == 1 || philosopher.id == 2) {
+        if (philosopher.State == THINKING) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 6), Coordinates.I(2, 6),
+                Coordinates.I(3, 6), Coordinates.I(4, 6),
+                PhilosopherLeft);
+        }
+        else if (philosopher.State == HUNGRY) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 5), Coordinates.I(2, 5),
+                 Coordinates.I(3, 5), Coordinates.I(4, 5),
+                PhilosopherLeft);
+        }
+        else if (philosopher.State == EATING) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 7), Coordinates.I(2, 7),
+                Coordinates.I(3, 7), Coordinates.I(4, 7),
+                PhilosopherLeft);
 
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 3), Coordinates.I(2, 3),
-        Coordinates.I(3, 3), Coordinates.I(4, 3),
-        PhilosopherGreen);
+        }
+        else if (philosopher.State == STARVED) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 8), Coordinates.I(2, 8),
+                Coordinates.I(3, 8), Coordinates.I(4, 8),
+                PhilosopherLeft);
+        }
+    }
+    else if (philosopher.id == 3 || philosopher.id == 4) {
+        if (philosopher.State == THINKING) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 10), Coordinates.I(2, 10),
+                Coordinates.I(3, 10), Coordinates.I(4, 10),
+                PhilosopherRight);
+        }
+        else if (philosopher.State == HUNGRY) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 9), Coordinates.I(2, 9),
+                Coordinates.I(3, 9), Coordinates.I(4, 9),
+                PhilosopherRight);
+        }
+        else if (philosopher.State == EATING) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 11), Coordinates.I(2, 11),
+                Coordinates.I(3, 11), Coordinates.I(4, 11),
+                PhilosopherRight);
 
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 4), Coordinates.I(2, 4),
-        Coordinates.I(3, 4), Coordinates.I(4, 4),
-        PhilosopherBrown);    
-    
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 5), Coordinates.I(2, 5),
-        Coordinates.I(3, 5), Coordinates.I(4, 5),
-        PhilosopherRed);
+        }
+        else if (philosopher.State == STARVED) {
+            Copy(PhilosophersBMP2X3, Coordinates.I(1, 12), Coordinates.I(2, 12),
+                Coordinates.I(3, 12), Coordinates.I(4, 12),
+                PhilosopherRight);
+        }
+    }
 
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 6), Coordinates.I(2, 6),
-        Coordinates.I(3, 6), Coordinates.I(4, 6),
-        PhilosopherBlue);
-
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 7), Coordinates.I(2, 7),
-        Coordinates.I(3, 7), Coordinates.I(4, 7),
-        PhilosopherGreen);
-
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 8), Coordinates.I(2, 8),
-        Coordinates.I(3, 8), Coordinates.I(4, 8),
-        PhilosopherBrown);
-
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 9), Coordinates.I(2, 9),
-        Coordinates.I(3, 9), Coordinates.I(4, 9),
-        PhilosopherRed);
-
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 10), Coordinates.I(2, 10),
-        Coordinates.I(3, 10), Coordinates.I(4, 10),
-        PhilosopherBlue);
-
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 11), Coordinates.I(2, 11),
-        Coordinates.I(3, 11), Coordinates.I(4, 11),
-        PhilosopherGreen);
-
-    Copy(PhilosophersBMP2X3, Coordinates.I(1, 12), Coordinates.I(2, 12),
-        Coordinates.I(3, 12), Coordinates.I(4, 12),
-        PhilosopherBrown);
 }
-void PrintBluePhilosophers(int x, int y) {
-    PasteNon0(PhilosopherBlue, x, y, screenMatrix); // Paste on screen
+void PrintPhilosophers(Philosopher philosopher) {
+    if(philosopher.id == 0)
+        PasteNon0(PhilosopherFront, philosopher.x, philosopher.y, screenMatrix); // Paste on screen
+    else if(philosopher.id == 1 || philosopher.id == 2)
+        PasteNon0(PhilosopherLeft, philosopher.x, philosopher.y, screenMatrix); // Paste on screen
+    else if (philosopher.id == 3 || philosopher.id == 4)
+        PasteNon0(PhilosopherRight, philosopher.x, philosopher.y, screenMatrix); // Paste on screen
 }
-//print red on scene
-void PrintRedPhilosophers(int x, int y) {
-    PasteNon0(PhilosopherRed, x, y, screenMatrix); // Paste on screen
+void PhilosopherChangeState(int id, State newState) {
+    philosophers[id].State = newState;
+    PreparePhilosopher(philosophers[id]);
 }
-
-void PrintGreenPhilosophers(int x, int y) {
-    PasteNon0(PhilosopherGreen, x, y, screenMatrix); // Paste on screen
-}
-
-void PrintBrownPhilosophers(int x, int y) {
-    PasteNon0(PhilosopherBrown, x, y, screenMatrix); // Paste on screen
-}
-
-// Function declarations
-void PhilosopherNonSemaphore(int id);
-void PhilosopherSemaphore(int id);
-void DrawDiningPhilosophers(ICBYTES& matrix);
-void StartNonSemaphore();
-void StartWithSemaphore();
-DWORD WINAPI DrawThread(LPVOID lpParam);
-void PrintNumbertoScreen(char* label, const char* base, int num);
-
-// Utility functions for chopstick management   
-void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime);
-void PutDownChopsticks(int id);
-
 // Chopstick handling for non-semaphore mode
 void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime) {
     int left = id;
@@ -200,7 +221,7 @@ void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime) {
     if (chopsticks[left].Available && chopsticks[right].Available) {
         chopsticks[left].Available = false;
         chopsticks[right].Available = false;
-        philosophers[id].State = EATING;
+        PhilosopherChangeState(id,EATING);
         hungryTime = 0;
     }
     else if (chopsticks[left].Available && !isSemaphoreMode) {
@@ -216,36 +237,34 @@ void PutDownChopsticks(int id) {
     int right = (id + 1) % NUM_PHILOSOPHERS;
     chopsticks[left].Available = true;
     chopsticks[right].Available = true;
-    philosophers[id].State = THINKING;
+    PhilosopherChangeState(id,THINKING);
 }
 
 // Philosopher thread function (non-semaphore mode)
 void PhilosopherNonSemaphore(int id) {
     int hungryTime = 0;
-    philosophers[id].State = THINKING;
+    PhilosopherChangeState(id, THINKING);
     while (philosophers[id].State != STARVED) {
+        PreparePhilosopher(philosophers[id]);
         Sleep(sleepDuration);
-        philosophers[id].State = HUNGRY;
+        PhilosopherChangeState(id, HUNGRY);
 
-        while (philosophers[id].State == HUNGRY) {
-            PickUpChopsticks(id, isSemaphoreMode, hungryTime);
-            if (philosophers[id].State == EATING) {
-                for (int i = 0; i < 4; i++) {
-                    SpaghettiPlate[id].State = i;
-                    Sleep(sleepDuration / 4);
-                }
-                hungryTime = 0;
-                PutDownChopsticks(id);
-                Sleep(sleepDuration);
-                break;
+        PickUpChopsticks(id, isSemaphoreMode, hungryTime);
+        if (philosophers[id].State == EATING) {
+            for (int i = 0; i < 4; i++) {
+                SpaghettiPlate[id].State = i;
+                Sleep(sleepDuration / 4);
             }
-            else {
-                Sleep(100);
-                hungryTime += 100;
-                if (hungryTime >= 5000) {
-                    philosophers[id].State = STARVED;
-                    break;
-                }
+            hungryTime = 0;
+            PutDownChopsticks(id);
+            Sleep(sleepDuration);
+        }
+        else if (philosophers[id].State == HUNGRY) {
+            // Açlık süresini artır
+            Sleep(100);
+            hungryTime += 100;
+            if (hungryTime >= 2000) {
+                PhilosopherChangeState(id, STARVED);
             }
         }
     }
@@ -256,49 +275,44 @@ void PhilosopherSemaphore(int id) {
     int hungryTime = 0;
     int left = id;
     int right = (id + 1) % NUM_PHILOSOPHERS;
-    philosophers[id].State = THINKING;
 
     while (philosophers[id].State != STARVED) {
-        Sleep(sleepDuration);
+        PreparePhilosopher(philosophers[id]);
         philosophers[id].State = HUNGRY;
         Sleep(sleepDuration);
-
         hungryTime += 100;
+
         if (hungryTime >= 5000) {
             philosophers[id].State = STARVED;
             break;
         }
+
         // Pick up chopsticks (use binary semaphores)
         WaitForSingleObject(chopsticksHandle[left], sleepDuration);
         WaitForSingleObject(chopsticksHandle[right], sleepDuration);
-        while (philosophers[id].State == HUNGRY) {
-            if (chopsticks[left].Available == true && chopsticks[right].Available == true) {
 
-                PickUpChopsticks(id, isSemaphoreMode, hungryTime);
+        if (chopsticks[left].Available && chopsticks[right].Available) {
+            PickUpChopsticks(id, isSemaphoreMode, hungryTime);
 
-                for (int i = 0; i < 4; i++) {
-                    SpaghettiPlate[id].State = i;
-                    Sleep(sleepDuration / 2);
-                } 
-
-                //Sleep(2*sleepDuration); --> for döngüsü sağlıyor
-
-                /*Eğer nonSemafor un yeme hızı ile aynı çalışmasını istiyorsan
-                    forun içindekini sleepDuration ı 2 yerine 4 e böl
-                    aşağıdaki sleep i aç ama kat sayı çarpanı verme --> sleepDuration kadar beklesin*/
-
-
-                ReleaseSemaphore(chopsticksHandle[left], 1, NULL);
-                ReleaseSemaphore(chopsticksHandle[right], 1, NULL);
-
-                PutDownChopsticks(id);
-                Sleep(2 * sleepDuration);
-                philosophers[id].State = THINKING;
+            for (int i = 0; i < 4; i++) {
+                SpaghettiPlate[id].State = i;
+                Sleep(sleepDuration / 2);
             }
+
+            ReleaseSemaphore(chopsticksHandle[left], 1, NULL);
+            ReleaseSemaphore(chopsticksHandle[right], 1, NULL);
+
+            PutDownChopsticks(id);
+            philosophers[id].State = THINKING;
+            hungryTime = 0; // Yemek yedikten sonra açlık süresini sıfırla
+            Sleep(2 * sleepDuration);
+        }
+        else {
+            // Çubuklar uygun değilse tekrar denemeden önce bekle
+            Sleep(100);
         }
     }
 }
-
 
 // Drawing the dining philosophers and chopsticks
 void CalculateCoordinate() {
@@ -312,17 +326,17 @@ void CalculateCoordinate() {
     // Chopstick
     int ch_centerX, ch_centerY, ch_Width, ch_Height, ch_rectX, ch_rectY;
 
-    for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
+    for (int id = 0; id < NUM_PHILOSOPHERS; ++id) {
         // Philosopher
-        ph_x = centerX + radius * cos(philosopherAngles[i] * PI / 180);
-        ph_y = centerY + radius * sin(philosopherAngles[i] * PI / 180);
+        ph_x = centerX + radius * cos(philosopherAngles[id] * PI / 180);
+        ph_y = centerY + radius * sin(philosopherAngles[id] * PI / 180);
 
         // SpaghettiPlate
-        sp_x = centerX + 20 + (radius - 75) * cos(philosopherAngles[i] * PI / 180);
-        sp_y = centerY + 30 + (radius - 75) * sin(philosopherAngles[i] * PI / 180);
+        sp_x = centerX + 20 + (radius - 75) * cos(philosopherAngles[id] * PI / 180);
+        sp_y = centerY + 30 + (radius - 75) * sin(philosopherAngles[id] * PI / 180);
 
-        ch_centerX = centerX + (radius - (15 * constant)) * cos(chopstickAngles[i] * PI / 180);
-        ch_centerY = centerY + (radius - (15 * constant)) * sin(chopstickAngles[i] * PI / 180);
+        ch_centerX = centerX + (radius - (15 * constant)) * cos(chopstickAngles[id] * PI / 180);
+        ch_centerY = centerY + (radius - (15 * constant)) * sin(chopstickAngles[id] * PI / 180);
         ch_Width = constant;
         ch_Height = 6 * constant;
         
@@ -330,11 +344,11 @@ void CalculateCoordinate() {
         ch_rectX = ch_centerX - (ch_Width / 2) + 40;
         ch_rectY = ch_centerY - (ch_Height / 2) + 50;
 
-        philosophers[i] = { ph_x, ph_y, THINKING };
+        philosophers[id] = {id, ph_x, ph_y, THINKING };
 
-        SpaghettiPlate[i] = { sp_x, sp_y, 3 }; 
+        SpaghettiPlate[id] = { sp_x, sp_y, 3 };
 
-        chopsticks[i] = { ch_rectX, ch_rectY, ch_centerX, ch_centerY, ch_Width, ch_Height, 0x00FF00, true };
+        chopsticks[id] = { ch_rectX, ch_rectY, ch_centerX, ch_centerY, ch_Width, ch_Height, 0x00FF00, true };
 
     }
 }
@@ -345,10 +359,7 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
 
         // Draw philosophers
-        if (philosophers[i].State == THINKING) PrintBluePhilosophers(philosophers[i].x, philosophers[i].y);
-        else if (philosophers[i].State == HUNGRY) PrintRedPhilosophers(philosophers[i].x, philosophers[i].y);
-        else if (philosophers[i].State == EATING) PrintGreenPhilosophers(philosophers[i].x, philosophers[i].y);
-        else if (philosophers[i].State == STARVED) PrintBrownPhilosophers(philosophers[i].x, philosophers[i].y);
+        PrintPhilosophers(philosophers[i]);
         PrintNumbertoScreen(label, "PL", i + 1);
         Impress12x20(matrix, philosophers[i].x + 5 * constant, philosophers[i].y - 5 * constant, label, 0xFFFFFF);
         
@@ -365,8 +376,6 @@ void DrawDiningPhilosophers(ICBYTES& matrix) {
         Impress12x20(matrix, chopsticks[i].centerX, chopsticks[i].centerY + 40, label, 0xFFFFFF);
 
     }
-
-    
 }
 
 // Utility to print labels
@@ -407,12 +416,12 @@ void KillThreads() {
             threads[i] = NULL;
         }
     }
-
 }
 // Start non-semaphore mode
 void StartNonSemaphore() {
     KillThreads(); // Kill previous threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
+        philosophers[i].id = i;
         chopsticks[i].Available = true;
         SpaghettiPlate[i].State = 3;
     }
@@ -427,6 +436,7 @@ void StartNonSemaphore() {
 void StartWithSemaphore() {
     KillThreads(); // Kill previous threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
+        philosophers[i].id = i;
         chopsticks[i].Available = true;
         SpaghettiPlate[i].State = 3;
         chopsticksHandle[i] = CreateSemaphore(NULL, 1, 1, NULL);
@@ -454,7 +464,6 @@ void ICGUI_main() {
 
     ReadImage("Assests/sprites.bmp", PhilosophersBMP);
     MagnifyX3(PhilosophersBMP, PhilosophersBMPX3);
-    PreparePhilosophersBMP();
     ICG_Button(5, 5, 150, 25, "Start NonSemaphore", StartNonSemaphore);
     ICG_Button(300, 5, 150, 25, "Start Semaphore", StartWithSemaphore);
     CreateImage(screenMatrix, 500, 500, ICB_UINT);
