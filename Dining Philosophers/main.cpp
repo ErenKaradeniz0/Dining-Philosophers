@@ -46,6 +46,7 @@
         {
             id = philosopher_id;
             hasImage = true;
+            state = THINKING;
         }
 
     };
@@ -269,7 +270,7 @@
                 // Açlık süresini artır
                 Sleep(100);
                 hungryTime += 100;
-                if (hungryTime >= 2000) {
+                if (hungryTime >= 6 * sleepDuration) {
                     PhilosopherChangeState(id, STARVED);
                 }
             }
@@ -288,7 +289,7 @@
             Sleep(sleepDuration);
             hungryTime += 100;
 
-            if (hungryTime >= 5000) {
+            if (hungryTime >= 6*sleepDuration) {
                 philosophers[id].state = STARVED;
                 break;
             }
@@ -333,8 +334,8 @@
 
         for (int id = 0; id < NUM_PHILOSOPHERS; ++id) {
             // Philosopher
-            ph_x = centerX + radius * cos(philosopherAngles[id] * PI / 180);
-            ph_y = centerY + radius * sin(philosopherAngles[id] * PI / 180);
+            ph_x = centerX + (radius + 10) * cos(philosopherAngles[id] * PI / 180);
+            ph_y = centerY + (radius + 10) * sin(philosopherAngles[id] * PI / 180);
 
             // SpaghettiPlate
             sp_x = centerX + 20 + (radius - 75) * cos(philosopherAngles[id] * PI / 180);
