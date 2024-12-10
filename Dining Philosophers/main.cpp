@@ -2,26 +2,6 @@
 #include <cmath>
 #include "icb_gui.h"
 
-// Global variables
-ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3;
-ICBYTES Spaghetti;
-
-// f for fast, s for slow
-int SetSpeed(char speed) {
-    // Lambda
-    switch (speed) {
-    case 'f':
-        return 300; // Fast
-    case 's':
-        return 1000; // Slow
-    default:
-        return 1000; // Default
-    }
-    return 1000;
-}
-
-int sleepDuration = SetSpeed('s'); //s or f
-
 struct SpagetthiStruct
 {
     int x;
@@ -60,22 +40,19 @@ struct Chopstic {
     bool Available;
 };
 
-int F1;
+// Global variables
+ICBYTES screenMatrix, PhilosophersBMP, PhilosophersBMPX3;
+ICBYTES Spaghetti;
 
+int F1;
 // Constants
 const int NUM_PHILOSOPHERS = 5;
-
-// Philosopher states
-
 Philosopher philosophers[NUM_PHILOSOPHERS];
-
 SpagetthiStruct SpaghettiPlate[NUM_PHILOSOPHERS];
-
 Chopstic chopsticks[NUM_PHILOSOPHERS];
 
 // Semaphore handles for chopsticks
 HANDLE chopsticksHandle[NUM_PHILOSOPHERS];
-
 HANDLE threads[NUM_PHILOSOPHERS + 1]; // +1 for DrawThread
 // Semaphore mode flag
 bool isSemaphoreMode = false;
@@ -92,10 +69,10 @@ ICBYTES Coordinates{
     {129, 213, 45, 90},   // Green Left
     {183, 213, 45, 90},   // Brown Left
 
-    {18, 114, 45, 90},     // Red Right
-    {72, 114, 45, 90},    // Blue Right
-    {126, 114, 45, 90},   // Green Right
-    {180, 114, 45, 90},   // Brown Right
+    {18, 114, 51, 90},     // Red Right
+    {72, 114, 51, 90},    // Blue Right
+    {126, 114, 51, 90},   // Green Right
+    {180, 114, 51, 90},   // Brown Right
 };
 
 // Mathematical variables
@@ -113,10 +90,37 @@ void StartNonSemaphore();
 void StartWithSemaphore();
 DWORD WINAPI DrawThread(LPVOID lpParam);
 void PrintNumbertoScreen(char* label, const char* base, int num);
-
 // Utility functions for chopstick management   
 void PickUpChopsticks(int id, bool isSemaphoreMode, int& hungryTime);
 void PutDownChopsticks(int id);
+
+// f for fast, s for slow
+int SetSpeed(char speed) {
+    // Lambda
+    switch (speed) {
+    case 'f':
+        return 300; // Fast
+    case 's':
+        return 1000; // Slow
+    default:
+        return 1000; // Default
+    }
+    return 1000;
+}
+
+int sleepDuration = SetSpeed('s'); //s or f
+
+bool CheckDeadLock() {
+    int ct = 0;
+    for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
+        if(philosophers[i].state == STARVED)
+            ct++;
+    }
+    if (ct == NUM_PHILOSOPHERS-1) {
+        return true;
+    }
+    return false;
+}
 
 //Copy Spagetti Sprite from SpagettiState 
 void SpaghettiState(int c) {
@@ -130,6 +134,7 @@ void SpaghettiState(int c) {
         break;
     }
 }
+
 // Print Spagetti
 void SpaghettiPrint(int x, int y) {
     PasteNon0(Spaghetti, x, y, screenMatrix);
@@ -269,8 +274,9 @@ void PhilosopherNonSemaphore(int id) {
             // Açlık süresini artır
             Sleep(100);
             hungryTime += 100;
-            if (hungryTime >= 2 * sleepDuration) {
+            if (hungryTime >= sleepDuration) {
                 PhilosopherChangeState(id, STARVED);
+
             }
         }
     }
@@ -409,9 +415,12 @@ DWORD WINAPI DrawThread(LPVOID lpParam) {
     PasteNon0(test, 1, 1, screenMatrix); // Paste on screen
 
     while (true) {
+        if (CheckDeadLock()) {
+            PlaySound("Sound/ChineseDOIT.wav", NULL, SND_ASYNC);
+        }
         DrawDiningPhilosophers(screenMatrix);
         DisplayImage(F1, screenMatrix);
-        Sleep(10); // Refresh every 30 ms
+        Sleep(10);
     }
 }
 
@@ -424,9 +433,17 @@ void KillThreads() {
         }
     }
 }
+
+void* MusicControllerThread(LPVOID lpParam) {
+    // ASYNC
+    PlaySound("Sound/ChineseGong.wav", NULL, SND_ASYNC);
+    return nullptr;
+}
+
 // Start non-semaphore mode
 void StartNonSemaphore() {
     KillThreads(); // Kill previous threads
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MusicControllerThread, NULL, 0, NULL);
     for (int i = 0; i < NUM_PHILOSOPHERS; i++) {
         philosophers[i].SetId(i);
         chopsticks[i].Available = true;
@@ -441,6 +458,7 @@ void StartNonSemaphore() {
 
 // Start semaphore mode
 void StartWithSemaphore() {
+    CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)MusicControllerThread, NULL, 0, NULL);
     KillThreads(); // Kill previous threads
     for (int i = 0; i < NUM_PHILOSOPHERS; ++i) {
         philosophers[i].SetId(i);
